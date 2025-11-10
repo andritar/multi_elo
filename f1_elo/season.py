@@ -2,45 +2,24 @@
 Logic to calculate team, league and season combinations.
 """
 from pandas import concat, read_csv
-from f1_elo.fetch_and_save import read_game_listing
+
+from f1_elo.constants import SEASON_DRIVERS_PATH
+from f1_elo.fetch_pvp import read_pvp_results
 
 
-def generate_team_season_combos_and_init_team_ratings(
-    games_list_path,
-    output_team_season_path,
-    first_season_path,
-    min_num_games=1,
-    start_rating = 2000
-):
+def calc_season_drivers(min_num_games=1, start_rating = 2000):
     """
-    Generates team-league-season combinations based on a minimum number of games on a league during specific season.
-
-    Save it into the provided file. Also save into another provided file information about all teams played in specified leagues.
+    Calculate drivers per each season and save it to specified location.
 
     Arguments:
-        games_list_path (str): Path to the CSV file containing game listings.
-        output_team_season_path (str): Path to save team-league-season combinations.
-        all_teams_path (str): Path to save initial team ratings.
         min_num_games (int, optional): Minimum games required for a team-season combo. Defaults to 1.
         start_rating (int, optional): Initial rating assigned to all teams. Defaults to 1400.
-
-    Raises:
-        FileNotFoundError: If the games_list_path file does not exist.
     """
-    try:
-        listing = read_game_listing(path=games_list_path)
-        
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File not found: {games_list_path}")
+    listing = read_pvp_results()
 
     games_stats = _get_num_games_stats(listing=listing)
-    team_season_combos = _calc_team_season_tournament_combos(games_stats=games_stats, min_num_games=min_num_games)
-    team_season_combos.to_csv(output_team_season_path, index=False)
-
-    first_season = team_season_combos['season'].min()
-    first_season_teams = team_season_combos[['team']].loc[team_season_combos['season'] == first_season]
-    first_season_teams['rating'] = start_rating
-    first_season_teams.to_csv(first_season_path, index=False)
+    season_drivers = _calc_season_drivers_combos(games_stats=games_stats, min_num_games=min_num_games)
+    season_drivers.to_csv(SEASON_DRIVERS_PATH, index=False)
 
 
 def _calc_min_allowed_games_per_tournament(games_stats):
@@ -77,7 +56,7 @@ def _calc_min_games_to_include_team(num_games):
     return 2
 
 
-def _calc_team_season_tournament_combos(games_stats, min_num_games=1):
+def _calc_season_drivers_combos(games_stats, min_num_games=1):
     """
     Calculates the valid team-season-tournament combinations based on game statistics.
 
