@@ -18,8 +18,8 @@ class EloCalculation:
     def __init__(
         self,
         elo_game_value,
-        num_rounds_degree,
-        num_drivers_degree,
+        num_rounds_degree=0,
+        num_drivers_degree=0,
         new_agent_alpha=2,
         calibrated_rating=2000,
         num_calibrated_drivers=20,
@@ -83,14 +83,14 @@ class EloCalculation:
         """
         self.output = []
 
-    def run_pipeline(self, pvp_results):
+    def run_pipeline(self, results):
         """
         Run ratings for every season bases on race results.
 
         Arguments:
             pvp_results (pandas.DataFrame): dataset with PVP interactions history.
         """
-        seasons = sorted(pvp_results['season'].unique())
+        seasons = sorted(results['season'].unique())
 
         for season in seasons:
             include_ix = self.drivers_years_active['first_season'] == season
@@ -100,7 +100,7 @@ class EloCalculation:
 
             self._calibrate_ratings(season=season)
 
-            self.run_season(pvp_results=pvp_results, season=season)
+            self.run_season(pvp_results=results, season=season)
 
             exclude_ix = self.drivers_years_active['last_season'] == season
             teams_to_exclude = self.drivers_years_active['team'].loc[exclude_ix].to_list()

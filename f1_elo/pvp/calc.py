@@ -56,7 +56,7 @@ def _combine_pvp_results(results):
 
     pvp_results = pvp_results.drop(columns=['resultId1', 'resultId2'])
 
-    race_info = results[['raceId', 'year', 'round', 'date']].drop_duplicates()
+    race_info = results[['raceId', 'season', 'round', 'game_date']].drop_duplicates()
     pvp_results = pvp_results.merge(race_info, how='left', on='raceId')
 
     return pvp_results
@@ -75,12 +75,33 @@ def _format_output(pvp_results):
     pvp_results = pvp_results.rename(columns={
         'driver1': 'home_team',
         'driver2': 'away_team',
-        'date': 'game_date',
-        'year': 'season',
     })
     pvp_results = pvp_results.drop(columns=['position1', 'position2', 'raceId'])
     pvp_results['home_field'] = 'no'
     pvp_results['country'] = 'world'
     pvp_results['tournament'] = 'F1'
 
+    pvp_results['result'] = pvp_results['score'].map(_calc_result)
+
     return pvp_results
+
+
+def _calc_result(score):
+    """
+    Determines the result of a match based on the score.
+
+    Arguments:
+        score (str): The match score in the format "X : Y", where X is the home team's score and Y is the away team's score.
+
+    Returns:
+        str: 'win1' if the home team wins, 'draw' if the match is a draw, or 'win2' if the away team wins.
+    """
+    scores = [int(x.strip()) for x in score.split(':')]
+    if scores[0] > scores[1]:
+        return 'win1'
+
+    elif scores[0] == scores[1]:
+        return 'draw'
+
+    else:
+        return 'win2'

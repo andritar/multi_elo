@@ -20,6 +20,7 @@ class EloGradientOptimizer(AbstractGradientOptimizer):
             gradient_delta (float): Step size used for gradient perturbation.
         """
         super().__init__(gradient_delta=gradient_delta)
+        self.init_settings = None
 
     def set_model(self):
         """
@@ -34,12 +35,13 @@ class EloGradientOptimizer(AbstractGradientOptimizer):
         Returns:
             Dictionary with initial Elo parameter settings.
         """
-        settings = {}
-        settings['elo_game_value'] = uniform(10, 500)
-        settings['num_rounds_degree'] = uniform(0.1, 1)
-        settings['num_drivers_degree'] = uniform(0.1, 1)
-        settings['default_rating'] = uniform(1500, 2000)
-        settings['new_agent_alpha'] = uniform(0.1, 10)
+        settings = {
+            'elo_game_value': uniform(77, 78),
+            'num_rounds_degree': uniform(0.33, 0.34),
+            'num_drivers_degree': uniform(0.39, 0.4),
+            'default_rating': uniform(1830, 1831),
+            'new_agent_alpha': uniform(1.65, 1.7),
+        }
 
         self.init_settings = settings
         print(settings)

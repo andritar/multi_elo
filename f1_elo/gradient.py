@@ -53,22 +53,27 @@ class AbstractGradientOptimizer(ABC):
         model_settings = self.initialize_model_settings()
         outputs = []
         for iter_num in range(1, num_epochs+1):
-            iter_dict = {}
-            iter_dict['iteration'] = iter_num
-            iter_dict.update(model_settings)
+            iter_result = {'iteration': iter_num}
+            iter_result.update(model_settings)
     
-            iter_dict = self.run_baseline_simulation(settings=model_settings, iter_result=iter_dict, datasets=datasets, stage_suffix='pre')
+            iter_result = self.run_baseline_simulation(
+                settings=model_settings, iter_result=iter_result, datasets=datasets, stage_suffix='pre'
+            )
 
             upd_settings = {}
             for parameter in model_settings.keys():
-                iter_dict = self.run_gradient(settings=model_settings, iter_result=iter_dict, datasets=datasets, gradient_field=parameter)
-                upd_settings[parameter] = iter_dict[f'new_{parameter}']
+                iter_result = self.run_gradient(
+                    settings=model_settings, iter_result=iter_result, datasets=datasets, gradient_field=parameter
+                )
+                upd_settings[parameter] = iter_result[f'new_{parameter}']
 
-            iter_dict = self.run_baseline_simulation(settings=upd_settings, iter_result=iter_dict, datasets=datasets, stage_suffix='new')
+            iter_result = self.run_baseline_simulation(
+                settings=upd_settings, iter_result=iter_result, datasets=datasets, stage_suffix='new'
+            )
     
             model_settings.update(upd_settings)
-            outputs.append(iter_dict)
-            print(f'Iteration: {iter_num}: {iter_dict["new_train_log_loss"]}')
+            outputs.append(iter_result)
+            print(f'Iteration: {iter_num}: {iter_result["new_train_log_loss"]}')
 
         self.optimized_parameters = model_settings
         self.output = DataFrame(outputs)
@@ -89,16 +94,16 @@ class AbstractGradientOptimizer(ABC):
             Updated iteration statistics as a dictionary.
         """
         current_settings = self.build_settings(settings, gradient_field=None)
-        elo_calc_current = self.model(**current_settings)
-        elo_calc_current.run_pipeline(pvp_results=datasets.get('init'))
-        elo_calc_current.reset_log_loss()
+        elo_calc = self.model(**current_settings)
+        elo_calc.run_pipeline(results=datasets.get('init'))
+        elo_calc.reset_log_loss()
     
-        elo_calc_current.run_pipeline(pvp_results=datasets.get('train'))
-        iter_result[f'{stage_suffix}_train_log_loss'] = elo_calc_current.log_loss
-        elo_calc_current.reset_log_loss()
+        elo_calc.run_pipeline(results=datasets.get('train'))
+        iter_result[f'{stage_suffix}_train_log_loss'] = elo_calc.log_loss
+        elo_calc.reset_log_loss()
     
-        elo_calc_current.run_pipeline(pvp_results=datasets.get('validation'))
-        current_validation_log_loss = elo_calc_current.log_loss
+        elo_calc.run_pipeline(results=datasets.get('validation'))
+        current_validation_log_loss = elo_calc.log_loss
         iter_result[f'{stage_suffix}_validation_log_loss'] = current_validation_log_loss
 
         return iter_result
@@ -118,13 +123,13 @@ class AbstractGradientOptimizer(ABC):
         """
         gradient_settings = self.build_settings(settings, gradient_field=gradient_field)  
         elo_calc = self.model(**gradient_settings)
-        elo_calc.run_pipeline(pvp_results=datasets.get('init'))
+        elo_calc.run_pipeline(results=datasets.get('init'))
         elo_calc.reset_log_loss()
     
-        elo_calc.run_pipeline(pvp_results=datasets.get('train'))
-        gradient_coeff = min(iter_result['iteration'], 5)
+        elo_calc.run_pipeline(results=datasets.get('train'))
+        gradient_coef = min(iter_result['iteration'], 5)
         gradient_value = -(elo_calc.log_loss - iter_result['pre_train_log_loss'])/self.gradient_delta
-        iter_delta = (iter_result[gradient_field]**0.6) * gradient_coeff * gradient_value
+        iter_delta = (iter_result[gradient_field]**0.6) * gradient_coef * gradient_value
         iter_delta = np_sign(iter_delta) * np_min([np_abs(iter_delta), np_abs(iter_result[gradient_field])*0.1])
         iter_result[f'{gradient_field}_delta'] = iter_delta
         iter_result[f'new_{gradient_field}'] = iter_result[gradient_field] + iter_delta
@@ -137,7 +142,7 @@ class AbstractGradientOptimizer(ABC):
 
         Arguments:
             model_settings (dict): Current model parameter values.
-            gradient_field (str): Parameter name to perturb for gradient estimation.
+            gradient_field (str/None): Parameter name to perturb for gradient estimation.
 
         Returns:
             parameter settings for simulation as a dictionary.

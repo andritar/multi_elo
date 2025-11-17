@@ -34,8 +34,8 @@ def get_results_data():
             'positionOrder', 'position', 'driver', 'constructor', 'points', 'grid'
         ]
     ]
-
-    results = results.sort_values(['year', 'round', 'positionOrder'])
+    results = results.rename(columns={'date': 'game_date', 'year': 'season'})
+    results = results.sort_values(['season', 'round', 'positionOrder'])
 
     return results
 
